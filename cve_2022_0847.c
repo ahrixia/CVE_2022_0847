@@ -1,5 +1,29 @@
-/* Full Credits go to : Max Kellermann */
-/* https://securityonline.info/cve-2022-0847-linux-kernel-privilege-escalation-vulnerability-alert/ */
+/* SPDX-License-Identifier: GPL-2.0 */
+/*
+ * Copyright 2022 CM4all GmbH / IONOS SE
+ *
+ * author: Max Kellermann <max.kellermann@ionos.com>
+ *
+ * Proof-of-concept exploit for the Dirty Pipe
+ * vulnerability (CVE-2022-0847) caused by an uninitialized
+ * "pipe_buffer.flags" variable.  It demonstrates how to overwrite any
+ * file contents in the page cache, even if the file is not permitted
+ * to be written, immutable or on a read-only mount.
+ *
+ * This exploit requires Linux 5.8 or later; the code path was made
+ * reachable by commit f6dd975583bd ("pipe: merge
+ * anon_pipe_buf*_ops").  The commit did not introduce the bug, it was
+ * there before, it just provided an easy way to exploit it.
+ *
+ * There are two major limitations of this exploit: the offset cannot
+ * be on a page boundary (it needs to write one byte before the offset
+ * to add a reference to this page to the pipe), and the write cannot
+ * cross a page boundary.
+ *
+ * Example: ./write_anything /root/.ssh/authorized_keys 1 $'\nssh-ed25519 AAA......\n'
+ *
+ * Further explanation: https://dirtypipe.cm4all.com/
+ */
 
 #define _GNU_SOURCE
 #include <unistd.h>
